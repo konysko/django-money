@@ -5,3 +5,27 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 line-length = 120
 target-version = ["py35"]
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+mypy_path = "djmoney/"
+no_implicit_optional = true
+show_error_codes = true
+warn_unreachable = true
+warn_unused_ignores = true
+
+
+[[tool.mypy.overrides]]
+allow_untyped_defs = true
+module = "tests.*"
+
+[[tool.mypy.overrides]]
+ignore_errors = true
+module = "setup"
+
+[[tool.mypy.overrides]]
+ignore_errors = true
+module = "docs.*"

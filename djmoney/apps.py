@@ -5,7 +5,7 @@ class MoneyConfig(AppConfig):
     name = "djmoney"
     default_auto_field = "django.db.models.AutoField"
 
-    def ready(self):
+    def ready(self) -> None:
         try:
             from .contrib.django_rest_framework import register_money_field
 
