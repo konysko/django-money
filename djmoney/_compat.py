@@ -7,9 +7,17 @@ This is quite important to keep the codebase clean.
 
 Please do not catch ImportError exceptions other places than here :)
 """
+import typing
+from typing import Type, TypeVar
 
 
-def setup_managers(sender):
+if typing.TYPE_CHECKING:
+    from django.db import models
+
+    T = TypeVar("T", bound=models.Model, covariant=True)
+
+
+def setup_managers(sender: "Type[T]") -> None:
     from .models.managers import money_manager
 
     default_manager_name = sender._meta.default_manager_name or "objects"

@@ -1,5 +1,6 @@
 import warnings
 from types import MappingProxyType
+from typing import Any, Optional, Union
 
 from django.conf import settings
 from django.db.models import F
@@ -25,12 +26,12 @@ class Money(DefaultMoney):
 
     use_l10n = None
 
-    def __init__(self, *args, format_options=None, **kwargs):
+    def __init__(self, *args: Any, format_options: Optional[dict[Any, Any]] = None, **kwargs: Any) -> None:
         self.decimal_places = kwargs.pop("decimal_places", DECIMAL_PLACES)
         self.format_options = MappingProxyType(format_options) if format_options is not None else None
         super().__init__(*args, **kwargs)
 
-    def _copy_attributes(self, source, target):
+    def _copy_attributes(self, source: "Money", target: "Money") -> None:
         """Copy attributes to the new `Money` instance.
 
         This class stores extra bits of information about string formatting that the parent class doesn't have.
@@ -41,7 +42,7 @@ class Money(DefaultMoney):
 
         When it comes to what number of decimal places to choose, we take the maximum number.
         """
-        selection = [
+        selection: list[Optional[int]] = [
             getattr(candidate, "decimal_places", None)
             for candidate in (self, source)
             if getattr(candidate, "decimal_places", None) is not None
@@ -49,7 +50,7 @@ class Money(DefaultMoney):
         if selection:
             target.decimal_places = max(selection)
 
-    def __add__(self, other):
+    def __add__(self, other: Union[F, "Money"]) -> Union[F, "Money"]:
         if isinstance(other, F):
             return other.__radd__(self)
         other = maybe_convert(other, self.currency)
@@ -57,7 +58,7 @@ class Money(DefaultMoney):
         self._copy_attributes(other, result)
         return result
 
-    def __sub__(self, other):
+    def __sub__(self, other: Union[F, "Money"]) -> Union[F, "Money"]:
         if isinstance(other, F):
             return other.__rsub__(self)
         other = maybe_convert(other, self.currency)
@@ -65,14 +66,14 @@ class Money(DefaultMoney):
         self._copy_attributes(other, result)
         return result
 
-    def __mul__(self, other):
+    def __mul__(self, other: Union[F, "Money"]) -> Union[F, "Money"]:
         if isinstance(other, F):
             return other.__rmul__(self)
         result = super().__mul__(other)
         self._copy_attributes(other, result)
         return result
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: Union[F, "Money"]) -> Union[F, "Money"]:
         if isinstance(other, F):
             return other.__rtruediv__(self)
         result = super().__truediv__(other)
@@ -80,13 +81,13 @@ class Money(DefaultMoney):
             self._copy_attributes(other, result)
         return result
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other: Any) -> None:
         # Backported from py-moneyed, non released bug-fix
         # https://github.com/py-moneyed/py-moneyed/blob/c518745dd9d7902781409daec1a05699799474dd/moneyed/classes.py#L217-L218
         raise TypeError("Cannot divide non-Money by a Money instance.")
 
     @property
-    def is_localized(self):
+    def is_localized(self) -> bool:
         if self.use_l10n is None:
             # This definitely raises a warning in Django 4 - we want to ignore RemovedInDjango50Warning
             # However, we cannot ignore this specific warning class as it doesn't exist in older
@@ -97,7 +98,7 @@ class Money(DefaultMoney):
             return setting
         return self.use_l10n
 
-    def __str__(self):
+    def __str__(self) -> str:
         format_options = {
             **MONEY_FORMAT,
             **(self.format_options or {}),
@@ -107,36 +108,36 @@ class Money(DefaultMoney):
             format_options["locale"] = locale
         return moneyed.l10n.format_money(self, **format_options)
 
-    def __html__(self):
+    def __html__(self) -> str:
         return mark_safe(avoid_wrapping(conditional_escape(str(self))))
 
-    def __round__(self, n=None):
+    def __round__(self, n: Optional[int] = None) -> "Money":
         amount = round(self.amount, n)
         new = self.__class__(amount, self.currency)
         self._copy_attributes(self, new)
         return new
 
-    def round(self, ndigits=0):
+    def round(self, ndigits: int = 0) -> "Money":
         new = super().round(ndigits)
         self._copy_attributes(self, new)
         return new
 
-    def __pos__(self):
+    def __pos__(self) -> "Money":
         new = super().__pos__()
         self._copy_attributes(self, new)
         return new
 
-    def __neg__(self):
+    def __neg__(self) -> "Money":
         new = super().__neg__()
         self._copy_attributes(self, new)
         return new
 
-    def __abs__(self):
+    def __abs__(self) -> "Money":
         new = super().__abs__()
         self._copy_attributes(self, new)
         return new
 
-    def __rmod__(self, other):
+    def __rmod__(self, other: "Money") -> "Money":
         new = super().__rmod__(other)
         self._copy_attributes(self, new)
         return new
@@ -148,7 +149,7 @@ class Money(DefaultMoney):
     __rmul__ = __mul__
 
 
-def get_current_locale():
+def get_current_locale() -> str:
     return translation.to_locale(
         translation.get_language()
         # get_language can return None starting from Django 1.8
@@ -156,7 +157,7 @@ def get_current_locale():
     )
 
 
-def maybe_convert(value, currency):
+def maybe_convert(value: Money, currency: str) -> Money:
     """
     Converts other Money instances to the local currency if `AUTO_CONVERT_MONEY` is set to True.
     """
